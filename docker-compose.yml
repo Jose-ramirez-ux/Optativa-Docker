@@ -1,4 +1,5 @@
-version: '3'
+version: '3.8'
+
 services:
   app:
     build: .
@@ -6,8 +7,41 @@ services:
       - "3000:3000"
     depends_on:
       - mongo
+
   mongo:
     image: mongo
     container_name: mongo
     ports:
       - "27017:27017"
+
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  agent:
+    image: jenkins/inbound-agent
+    container_name: jenkins-agent
+    depends_on:
+      - jenkins
+    environment:
+      - JENKINS_URL=http://jenkins:8080
+      - JENKINS_AGENT_NAME=optativa-danna,laura,jose
+      - JENKINS_SECRET=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDEn6vtUhFkQ+OVSK0Y74yq9LmXx+erKiVw/H6bdkyZURvCTKTU97nBlMnKWFPUNHWRM9ro/pkbOgSFpHqPSLDjm0BLPrcAOKypVafAPPZs78BY6wNJ0kueHHwhj0LmucZggwKw0j3ewnLkWpuddjhCZ59JVnSiGxO4WOc+U7vRPq9Ujwp97SHGvy/Hewxi9cLnG8pqfBzxSY/RE4hsKLbB9HOnu5j0PVIAQEMr+R02msLm/OwZcNtJqH2K6sjktOnDMert9IvQc6rE4tSToBo208OsdpF96l/JUBAydhkNL7JEicm82gsigKNBMWKor8li8KXM4wMGvJC+Z5qZObyULL2r1gGuVgW+34EBUs/Iqm7HzoegTl+LBspZ7JWc7MfhNYdUvbOCDP/uzSDZWfLWN0F2FHNI2zKeQMk3zfRG7yuAnrZbbGv5qShrdTHVf2qo4iLFSSNAhebd/dftrRohbsXWyjIU0uE8exgo3dhtQ03xt3Q1d3wbbs4NVn20YK0= damim@MICH
+
+
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  jenkins_home:

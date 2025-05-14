@@ -1,0 +1,14 @@
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Instala Docker y herramientas necesarias
+RUN apt-get update && \
+    apt-get install -y docker.io sudo git curl && \
+    usermod -aG docker jenkins && \
+    echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers
+
+# No se incluye ninguna línea que use /var/run/docker.sock en build time
+# porque este socket solo existe cuando el contenedor está en ejecución
+
+USER jenkins
