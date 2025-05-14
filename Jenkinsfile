@@ -1,16 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        LOCUST_CONTAINER_NAME = 'locust-container'
-    }
-
     stages {
         stage('Build') {
             steps {
                 script {
-                    // Construir la imagen de Docker de la aplicación
-                    docker.build('simple-app')  // Aquí construyes la imagen de tu aplicación
+                    sh 'docker build -t simple-app .'
                 }
             }
         }
@@ -18,10 +13,10 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    // Ejecutar las pruebas de rendimiento con Locust
-                    docker.image('locustio/locust').inside {
-                        sh 'locust -f /path/to/your/locustfile.py --headless -u 100 -r 10'  // Ajusta el path al archivo locustfile.py
-                    }
+                    sh 'docker run --rm -d --name simple-app-test -p 5000:5000 simple-app'
+                    sleep(time: 5, unit: 'SECONDS') // Espera a que el contenedor inicie
+                    sh 'locust -f locustfile.py --headless -u 50 -r 10 --host=http://localhost:5000'
+                    sh 'docker stop simple-app-test'
                 }
             }
         }
@@ -29,11 +24,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Desplegar la imagen de Docker
-                    docker.image('simple-app').run()  // Aquí ejecutas el contenedor con la imagen de la aplicación
+                    sh 'docker run -d --name simple-app -p 5000:5000 simple-app'
                 }
             }
         }
     }
 }
-
