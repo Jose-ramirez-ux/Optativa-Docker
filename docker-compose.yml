@@ -1,19 +1,24 @@
-version: '3.8'
-
 services:
+  # Tu aplicación Node.js (Lockus)
   app:
     build: .
     ports:
       - "3000:3000"
     depends_on:
       - mongo
+    networks:
+      - jenkins_network
 
+  # Base de datos Mongo
   mongo:
     image: mongo
     container_name: mongo
     ports:
       - "27017:27017"
+    networks:
+      - jenkins_network
 
+  # Jenkins principal
   jenkins:
     build:
       context: ./jenkins
@@ -22,26 +27,74 @@ services:
     privileged: true
     user: root
     ports:
-      - "8080:8080"
+      - "8090:8080"
       - "50000:50000"
+    
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins_network
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
 
-  agent:
-    image: jenkins/inbound-agent
-    container_name: jenkins-agent
+  # Agente Jenkins 1
+  jenkins-agent-1:
+    image: jenkins/inbound-agent:latest
+    container_name: jenkins-agent-1
+    user: root
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_agent_1_home:/home/jenkins/agent
+    environment:
+      - JENKINS_URL=http://jenkins:8080/jenkins
+      - JENKINS_AGENT_NAME=agent1
+      - JENKINS_SECRET=agent1_secret
+    networks:
+      - jenkins_network
     depends_on:
       - jenkins
-    environment:
-      - JENKINS_URL=http://jenkins:8080
-      - JENKINS_AGENT_NAME=optativa-danna,laura,jose
-      - JENKINS_SECRET=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDEn6vtUhFkQ+OVSK0Y74yq9LmXx+erKiVw/H6bdkyZURvCTKTU97nBlMnKWFPUNHWRM9ro/pkbOgSFpHqPSLDjm0BLPrcAOKypVafAPPZs78BY6wNJ0kueHHwhj0LmucZggwKw0j3ewnLkWpuddjhCZ59JVnSiGxO4WOc+U7vRPq9Ujwp97SHGvy/Hewxi9cLnG8pqfBzxSY/RE4hsKLbB9HOnu5j0PVIAQEMr+R02msLm/OwZcNtJqH2K6sjktOnDMert9IvQc6rE4tSToBo208OsdpF96l/JUBAydhkNL7JEicm82gsigKNBMWKor8li8KXM4wMGvJC+Z5qZObyULL2r1gGuVgW+34EBUs/Iqm7HzoegTl+LBspZ7JWc7MfhNYdUvbOCDP/uzSDZWfLWN0F2FHNI2zKeQMk3zfRG7yuAnrZbbGv5qShrdTHVf2qo4iLFSSNAhebd/dftrRohbsXWyjIU0uE8exgo3dhtQ03xt3Q1d3wbbs4NVn20YK0= damim@MICH
 
-
+  # Agente Jenkins 2
+  jenkins-agent-2:
+    image: jenkins/inbound-agent:latest
+    container_name: jenkins-agent-2
+    user: root
+    privileged: true
     volumes:
-      - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins_agent_2_home:/home/jenkins/agent
+    environment:
+      - JENKINS_URL=http://jenkins:8080/jenkins
+      - JENKINS_AGENT_NAME=agent2
+      - JENKINS_SECRET=agent2_secret
+    networks:
+      - jenkins_network
+    depends_on:
+      - jenkins
+
+  # Servidor Ubuntu de despliegue
+  ubuntu-docker:
+    build:
+      context: ./ubuntu-docker
+      dockerfile: Dockerfile
+    container_name: ubuntu-docker
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins_network
+    ports:
+      - "2222:22"
+    restart: unless-stopped
+
+networks:
+  jenkins_network:
+    driver: bridge
 
 volumes:
   jenkins_home:
+  jenkins_agent_1_home:
+  jenkins_agent_2_home:
+  app_deployment:

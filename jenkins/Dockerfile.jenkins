@@ -2,13 +2,14 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Instala Docker y herramientas necesarias
+# Instala herramientas necesarias (sin docker.io por ahora)
 RUN apt-get update && \
-    apt-get install -y docker.io sudo git curl && \
+    apt-get install -y sudo git curl python3 python3-pip && \
+    pip3 install locust && \
     usermod -aG docker jenkins && \
     echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers
 
-# No se incluye ninguna línea que use /var/run/docker.sock en build time
-# porque este socket solo existe cuando el contenedor está en ejecución
-
+    # No se incluye ninguna línea que use /var/run/docker.sock en build time
+    # porque este socket solo existe cuando el contenedor está en ejecución
+    
 USER jenkins
